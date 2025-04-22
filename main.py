@@ -8,6 +8,7 @@ import display
 import cell_terrain
 import random 
 import units
+from commands import MoveCommand
 pygame.init()
 
 
@@ -20,10 +21,12 @@ class Game:
         self.board = game_map.GameMap()
         self.reset = False
 
-        self.speed = 1
+        self.speed = 512
+        self.ticks = 0
 
-        for _ in range(50):
-            self.units.add_cat(self.display.images["cat_sprite"], self.board)
+        cat_sprites = {key: self.display.images[f"cat_sprite_{key}"] for key in ["left", "right", "down", "up"]}
+        for _ in range(int(self.board.width * self.board.height * 0.1)):
+            self.units.add_cat(cat_sprites, self.board)
 
     def event_handling(self):
         for event in pygame.event.get():
@@ -46,6 +49,8 @@ class Game:
                     self.speed = max(self.speed // 2, 0.1)
                 elif event.key == pygame.K_RIGHT:
                     self.speed = min(self.speed * 2, 1024)
+                elif event.key == pygame.K_DOWN:
+                    self.display.agent_tracking = random.choice(self.units.units)
 
                 # elif event.key == pygame.K_u:
                 #     self.display.TILE_X_OFFSET -= 1
@@ -56,23 +61,55 @@ class Game:
                 # elif event.key == pygame.K_p:
                 #     self.display.TILE_Y_OFFSET += 1
 
+        if not self.display.agent_tracking_cooldown and time.perf_counter() - self.display.drag_time < 0.1:
+            pos, pressed = pygame.mouse.get_pos(), pygame.mouse.get_pressed()
+            for unit in self.units.units:
+                x, y, visible = self.display.get_unit_pos(unit)
 
+                if visible and x < pos[0] < x + 50 * self.display.zoom and y < pos[1] < y + 50 * self.display.zoom and pressed[0]:
+                    self.display.agent_tracking = unit
+                    self.display.agent_tracking_cooldown = True
+                    print(unit.name)
 
 
     def draw(self):
         self.display.fill("#121212")
         self.display.draw_map(self.board)
-        self.display.tick(self.board)
+        self.display.tick(self.board, self.units.units)
         
         self.display.draw_units(self.units)
+        self.display.handle_unit_animation(self.units)
 
         pygame.display.flip()
+
+    def cat_logic(self, dt):
+        """Handles all of the calling, movement, and functions of the cats"""
+
+        self.ticks += dt
+
+        while self.ticks > self.speed:
+            commands = []
+            for cat in self.units.units:
+                commands.append(cat.getMove(self.board))
+
+            random.shuffle(commands)
+
+            for command in commands:
+                if type(command) == MoveCommand:
+                    unit, position = command.unit, command.pos
+                    if position in self.units.by_pos: continue
+
+                    self.units.move_unit(unit, position)
+                    unit.direction = command.direction
+
+            self.ticks -= self.speed
 
     def main_loop(self):
         dt = 1/100000
         while not self.reset:
             self.event_handling()
             self.draw()
+            self.cat_logic(dt)
             dt = self.fpsClock.tick(params.FPS)
       
 

@@ -1,4 +1,6 @@
 import pygame, random
+from commands import MoveCommand
+import cell_terrain
 
 cat_colors = [
     (210, 161, 92),
@@ -18,25 +20,47 @@ cat_colors = [
     (60, 60, 60)
 ]
 
+name_prefixes = [
+    "Ash", "Birch", "Cloud", "Dark", "Dawn", "Eagle", "Frost", "Gorse", "Hawk", "Ice",
+    "Jagged", "Leaf", "Mist", "Night", "Otter", "Pine", "Quick", "Rain", "Snow", "Thistle",
+    "Vine", "Willow", "Yew", "Red", "Brindle", "Silent", "Larch", "Stone", "Swift", "Golden"
+]
+
+name_suffixes = [
+    "tail", "foot", "pelt", "claw", "fur", "stripe", "eye", "fang", "storm", "shade",
+    "breeze", "heart", "nose", "whisker", "thorn", "light", "fall", "shine", "leaf", "strike"
+]
+
 class Cat:
-    def __init__(self, sprite=None, pos=[0,0]):
+    def __init__(self, sprites={}, pos=[0,0]):
         self.pos = pos
-        self.display_pos = pos[:]
+        self.display_pos = list(pos)
 
         self.colors = self.generate_color_palette()
-        self.sprite = self.color_sprite(sprite, self.colors)
-        self.name = "".join([random.choice("ABCDEFGHJIJKLMNOPQRSTUV") for _ in range(10)])
+
+        self.sprites = {}
+        for key, val in sprites.items():
+            self.sprites[key] = self.color_sprite(val, self.colors)
+     
+        self.id = random.randint(0, 999999999999)
+        self.name = self.generate_name()
         self.size = 30
+
+        self.direction = "left"
+
+        self.agility_stat = random.random()
         
     def generate_color_palette(self):
         main_color = random.choice(cat_colors)
         eye_color = self.generate_color()
-        highlights = self.darken(main_color, 0.7)
-        shadows = self.darken(main_color, 2)
+        highlights = self.darken(main_color, random.uniform(0.3, 1.5))
+        shadows = self.darken(main_color, random.uniform(1, 3))
 
         colors = {(174, 168, 46, 255): main_color, (106, 190, 48, 255): shadows, (91, 110, 225, 255): highlights, (172, 50, 50, 255): eye_color}
         return colors
 
+    def generate_name(self):
+        return random.choice(name_prefixes) + random.choice(name_suffixes)
 
     def generate_color(self):
         return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
@@ -59,3 +83,21 @@ class Cat:
 
         del pixel_array 
         return surface
+    
+
+    def getMove(self, game_map):
+        possible_moves = []
+        
+        directions = ["left", "right", "down", "up"]
+        for i, move in enumerate([(-1, 0), (1, 0), (0, 1), (0, -1)]):
+            new_pos = (self.pos[0] + move[0], self.pos[1] + move[1])
+            
+            if not game_map.in_bounds(new_pos[0], new_pos[1]): continue
+            if game_map.tiles[new_pos[1]][new_pos[0]].has_stump: continue
+
+            possible_moves.append((new_pos, directions[i]))
+
+        if random.random() < self.agility_stat or not possible_moves: return None
+
+        move, direction = random.choice(possible_moves)
+        return MoveCommand(self, move, direction)

@@ -26,25 +26,79 @@ class GameMap:
     
 
     def generate_board(self, width, height):
-        board = [[0] * width for _ in range(height)]
+        board = [[0 for _ in range(self.width)] for _ in range(self.height)]
+        noise = [[random.random() for _ in range(self.width)] for _ in range(self.height)]
         
-        for j in range(len(board)):
-            for i in range(len(board[0])):
-                board[j][i] = Cell(TERRAIN_TRANSLATION[random.randint(0, 1)], (i, j))
+        noise = self.smooth(noise, 4)
+
+        for j, row in enumerate(noise):
+            for i, tile in enumerate(row):
+                if noise[j][i] > 0.5:
+                    board[j][i] = 1
+                else: 
+                    board[j][i] = 0
+            
+        # Get rid of isolated water tiles
+        board = self.remove_isolated(board, 2, 5)
+        
+        for j, row in enumerate(board):
+            for i, tile in enumerate(row):
+                board[j][i] = Cell(TERRAIN_TRANSLATION[tile], (i, j))
+
 
         return board
     
+    def smooth(self, board, depth):
+        new_board = [[0] * len(board[0]) for _ in range(len(board))]
 
-class Chunk:
-    def __init__(self, size=16):
-        self.tiles, self.size = [], size
-        self.background_tiles = []
-        self.rendered = None
-        self.render_update = False
+        for y, row in enumerate(board):
+            for x, tile in enumerate(row):
+                count = 0
 
-    def add_tile(self, cell):
-        self.tiles.append(cell)
-        cell.chunk = self
+                for j in range(-depth, depth + 1):
+                    for i in range(-depth, depth + 1):
+
+                        new_x, new_y = i + x, j + y
+                        new_x %= len(row)
+                        new_y %= len(board)
+                        new_board[y][x] += board[new_y][new_x]
+                        count += 1
+
+                new_board[y][x] /= count
+
+        return new_board
+
+    def remove_isolated(self, board, terrain, minimum_amount):
+        """
+            Performs floodfill and removes terrain if there isn't atleast minimum_amount connected
+        """
+
+        seen_nodes = set([])
+
+        for j, row in enumerate(board):
+            for i, tile in enumerate(row):
+
+                if (i, j) not in seen_nodes and board[j][i] == terrain:
+                    seen_nodes.add((i, j))
+                    current_fill = [(i, j)]
+                    queue = [(i, j)]
+
+                    while queue:
+                        x, y = queue.pop(0)
+
+                        for dir_x, dir_y in [[-1, 0], [1, 0], [0, 1], [0, -1]]:
+                            new_x, new_y = dir_x + x, dir_y + y
+                
+
+                            if new_x in range(len(board[0])) and new_y in range(len(board)) and board[new_y][new_x] == terrain and (new_x, new_y) not in seen_nodes:
+                                seen_nodes.add((new_x, new_y))
+                                queue.append((new_x, new_y))
+                                current_fill.append((new_x, new_y))
+
+                    if len(current_fill) < minimum_amount:
+                        for (x, y) in current_fill:
+                            board[y][x] = 0
+                        
+
+        return board
     
-    def add_background_tile(self, cell):
-        self.background_tiles.append(cell)

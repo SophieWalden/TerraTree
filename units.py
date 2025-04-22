@@ -13,3 +13,11 @@ class unit_dict:
 
         self.units.append(Cat(sprite, pos))
         self.by_pos[pos] = self.units[-1]
+
+    def move_unit(self, unit, new_pos):
+        old_pos = unit.pos
+        del self.by_pos[old_pos]
+
+        self.by_pos[new_pos] = unit
+        unit.pos = new_pos
+        

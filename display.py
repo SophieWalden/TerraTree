@@ -43,6 +43,12 @@ class Display:
         self.TILE_X_OFFSET = 24
         self.TILE_Y_OFFSET = 12
 
+        self.agent_tracking = None
+        self.tracking_wanted_pos = [0, 0]
+        self.agent_tracking_cooldown = False
+        self.drag_time = time.perf_counter()
+        self.drag_cooldown = False
+
     def load_images(self):
         images = {}
         for filename in os.listdir("images"):
@@ -85,6 +91,18 @@ class Display:
         y *= self.zoom
 
         return x, y
+        
+    def get_unit_pos(self, unit):
+        display_pos = unit.display_pos
+        display_pos = self.world_to_cord(display_pos)
+        
+        x, y = display_pos[0] - self.camera_pos[0], display_pos[1] - self.camera_pos[1]
+        x *= self.zoom
+        y *= self.zoom
+
+        visible = self.is_onscreen(x, y, IMAGE_SIZE)
+
+        return x, y, visible
     
     def world_to_cord(self, pos):
         """Translates 2D array cords into cords for isometric rendering"""
@@ -103,16 +121,24 @@ class Display:
             x, y = self.world_to_cord((cell.pos[0], cell.pos[1]))
             self.blit(image, x, y, IMAGE_SIZE, TILE_IMAGES[cell.terrain])
 
+            if cell.has_stump:
+                image = self.images["tree_tile"]
+                x, y = self.world_to_cord((cell.pos[0], cell.pos[1]))
+                x += self.TILE_X_OFFSET // 3
+                y -= self.TILE_Y_OFFSET // 1.2
+                self.blit(image, x, y, 32, "tree_tile")
+
     def draw_units(self, units):
         for unit in units.units:
             position = unit.display_pos
-            image = unit.sprite
+            image = unit.sprites[unit.direction]
             size = unit.size
             
             x, y = self.world_to_cord(position)
             y -= self.TILE_Y_OFFSET
             x += self.TILE_X_OFFSET // 2
-            self.blit(image, x, y, size, unit.name)
+            self.blit(image, x, y, size, f"{unit.id}_{unit.direction}")
+
 
     def draw_text(self, given_surface, msg, x, y, color):
         if msg.isdigit():
@@ -144,13 +170,43 @@ class Display:
     def draw_ui(self):
         pass
 
-    def tick(self, board):
+    def handle_unit_animation(self, unit_dict):        
+        for unit in unit_dict.units:
+            dx, dy = unit.pos[0] - unit.display_pos[0], unit.pos[1] - unit.display_pos[1]
+
+            if abs(dx) + abs(dy) < 0.01:
+                unit.display_pos = list(unit.pos)
+                continue
+                
+            unit.display_pos[0] += dx * 0.05
+            unit.display_pos[1] += dy * 0.05
+
+
+    def tick(self, board, units):
         # Dragging
         rel, pressed, pos = pygame.mouse.get_rel(), pygame.mouse.get_pressed(), pygame.mouse.get_pos()
-   
-        if pressed[0]:
+
+        if pressed[0] and self.agent_tracking == None:
             self.camera_pos[0] += -rel[0] * (1 / self.zoom)
             self.camera_pos[1] += -rel[1] * (1 / self.zoom)
+        elif self.agent_tracking != None:
+            self.tracking_wanted_pos = self.agent_tracking.display_pos[:]
+            x, y = self.world_to_cord(self.tracking_wanted_pos)
+            y -= self.TILE_Y_OFFSET
+            x += self.TILE_X_OFFSET // 2
+            self.tracking_wanted_pos = [x, y]
+            self.tracking_wanted_pos[0] -= (self.width /self.zoom) // 2
+            self.tracking_wanted_pos[1] -= (self.height /self.zoom) // 2
+
+            if pressed[0] and not self.agent_tracking_cooldown: self.agent_tracking = None
+        if not pressed[0]: self.agent_tracking_cooldown = False
+
+        if self.agent_tracking != None:
+            if abs(self.camera_pos[0] - self.tracking_wanted_pos[0]) + abs(self.camera_pos[1] - self.tracking_wanted_pos[1]) > 0.1:
+                dx, dy = self.camera_pos[0] - self.tracking_wanted_pos[0], self.camera_pos[1] - self.tracking_wanted_pos[1]
+
+                self.camera_pos[0] -= dx * 0.05
+                self.camera_pos[1] -= dy * 0.05
 
         # Zooming
         if abs(self.zoom - self.desired_zoom) > 0.005:
@@ -169,3 +225,8 @@ class Display:
             self.zoom = self.desired_zoom
 
 
+        if pressed[0] and not self.drag_cooldown: 
+            self.drag_time = time.perf_counter()
+            self.drag_cooldown = True
+        
+        if not pressed[0]: self.drag_cooldown = False
