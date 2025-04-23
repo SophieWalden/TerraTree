@@ -17,8 +17,24 @@ cat_colors = [
     (200, 180, 160),
     (150, 130, 100),
     (220, 220, 220),
-    (60, 60, 60)
+    (60, 60, 60),
+    (160, 120, 90),
+    (120, 100, 80),
+    (200, 200, 210),
+    (240, 230, 220),
+    (170, 150, 120),
+    (110, 90, 70),
+    (130, 130, 130),
+    (90, 70, 60),
+    (255, 220, 180),
+    (100, 80, 120),
+    (180, 160, 130),
+    (240, 200, 160),
+    (210, 190, 150),
+    (80, 60, 40),
+    (190, 170, 180)
 ]
+
 
 name_prefixes = [
     "Ash", "Birch", "Cloud", "Dark", "Dawn", "Eagle", "Frost", "Gorse", "Hawk", "Ice",
@@ -29,6 +45,93 @@ name_prefixes = [
 name_suffixes = [
     "tail", "foot", "pelt", "claw", "fur", "stripe", "eye", "fang", "storm", "shade",
     "breeze", "heart", "nose", "whisker", "thorn", "light", "fall", "shine", "leaf", "strike"
+]
+
+personality = [
+    "Calm",
+    "Energetic",
+    "Reserved",
+    "Outgoing",
+    "Bold",
+    "Timid",
+    "Loyal",
+    "Rebellious",
+    "Confident",
+    "Anxious",
+    "Gentle",
+    "Clever",
+    "Naive",
+    "Honest",
+    "Secretive"
+]
+
+social_traits = [
+    "Friendly",
+    "Aloof",
+    "Charismatic",
+    "Awkward",
+    "Empathetic",
+    "Jealous",
+    "Competitive",
+    "Supportive",
+    "Independent",
+    "Clingy",
+    "Leaderly",
+    "Follower",
+    "Distrustful",
+    "Trusting"
+]
+
+quirks = [
+    "Talks to self",
+    "Collects things",
+    "Stares often",
+    "Vivid dreams",
+    "Fidgets often",
+    "Loves symmetry",
+    "Sleeps oddly",
+    "Hums while working",
+    "Argues with air",
+    "Fears insects",
+    "Loves storms",
+    "Follows others",
+    "Eats fast",
+    "Never blinks"
+]
+
+combat_style = [
+    "Aggressive",
+    "Defensive",
+    "Strategic",
+    "Reckless",
+    "Cautious",
+    "Chaotic",
+    "Calculated",
+    "Showy",
+    "Stealthy",
+    "Protective"
+]
+
+role_attitude = [
+    "Role-devoted",
+    "Questions orders",
+    "Aspires to lead",
+    "Lazy worker",
+    "Proud of role",
+    "Wants role change",
+    "Feels unneeded",
+    "Seeks more power"
+]
+
+bonding_style = [
+    "Bonds quickly",
+    "Slow to trust",
+    "Easily hurt",
+    "Loyal forever",
+    "Shallow bonds",
+    "Avoids connection",
+    "Trusts only kin",
+    "Needs approval"
 ]
 
 class Cat:
@@ -49,6 +152,8 @@ class Cat:
         self.direction = "left"
 
         self.agility_stat = random.random()
+
+        self.traits = [random.choice(personality), random.choice(social_traits), random.choice(quirks), random.choice(combat_style), random.choice(role_attitude), random.choice(bonding_style)]
         
     def generate_color_palette(self):
         main_color = random.choice(cat_colors)

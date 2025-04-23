@@ -1,10 +1,12 @@
 from cat import Cat
 import random
+from collections import defaultdict
 
 class unit_dict:
     def __init__(self):
         self.units = []
         self.by_pos = {}
+        self.by_faction = defaultdict(lambda: [])
 
     def add_cat(self, sprite, game_map):
         pos = (random.randint(0, game_map.width - 1), random.randint(0, game_map.height - 1))

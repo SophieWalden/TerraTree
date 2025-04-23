@@ -24,9 +24,13 @@ class Game:
         self.speed = 512
         self.ticks = 0
 
+        self.factions = self.board.gen_factions()
         cat_sprites = {key: self.display.images[f"cat_sprite_{key}"] for key in ["left", "right", "down", "up"]}
-        for _ in range(int(self.board.width * self.board.height * 0.1)):
-            self.units.add_cat(cat_sprites, self.board)
+        for faction in self.factions:
+            for _ in range(25):
+                faction.create_cat(cat_sprites, self.units, self.board)
+                
+        
 
     def event_handling(self):
         for event in pygame.event.get():
@@ -40,7 +44,7 @@ class Game:
             elif event.type == pygame.MOUSEWHEEL:
                 scroll_val = min(max(event.y, -3), 3)/6 + 1
                 self.display.desired_zoom = max(min(scroll_val * self.display.desired_zoom, 10), 0.5)
-                self.display.desired_zoom = round(self.display.desired_zoom * 50) / 50
+                self.display.desired_zoom = round(self.display.desired_zoom * 12) / 12
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
@@ -66,19 +70,20 @@ class Game:
             for unit in self.units.units:
                 x, y, visible = self.display.get_unit_pos(unit)
 
-                if visible and x < pos[0] < x + 50 * self.display.zoom and y < pos[1] < y + 50 * self.display.zoom and pressed[0]:
+                if visible and x < pos[0] < x + unit.size * self.display.zoom and y < pos[1] < y + unit.size * self.display.zoom and pressed[0]:
                     self.display.agent_tracking = unit
                     self.display.agent_tracking_cooldown = True
-                    print(unit.name)
 
 
     def draw(self):
+        self.display.tick(self.board, self.units.units)
         self.display.fill("#121212")
         self.display.draw_map(self.board)
-        self.display.tick(self.board, self.units.units)
+        
         
         self.display.draw_units(self.units)
         self.display.handle_unit_animation(self.units)
+        self.display.draw_ui()
 
         pygame.display.flip()
 

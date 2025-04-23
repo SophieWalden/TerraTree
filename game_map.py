@@ -2,6 +2,7 @@ import cell_terrain
 import random
 from cell import Cell
 import params
+import faction
 
 TERRAIN_TRANSLATION = {0: cell_terrain.Terrain.Grass, 1: cell_terrain.Terrain.Forest}
 
@@ -24,6 +25,25 @@ class GameMap:
     def in_bounds(self, x, y):
         return x >= 0 and x < len(self.tiles[0]) and y >= 0 and y < len(self.tiles) 
     
+    def gen_factions(self):
+
+        def dist(p1, p2):
+            return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** .5
+
+        factions = []
+        camp_positions = set([])
+        for _ in range(params.FACTION_COUNT):
+            createdFaction = faction.Faction()
+
+            camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
+            while any(dist(camp_position, pos) < 30 for pos in camp_positions):
+                camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
+
+            createdFaction.camp_pos = camp_position
+            camp_positions.add(camp_position)
+            factions.append(createdFaction)
+
+        return factions
 
     def generate_board(self, width, height):
         board = [[0 for _ in range(self.width)] for _ in range(self.height)]

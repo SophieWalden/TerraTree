@@ -95,12 +95,15 @@ class Display:
     def get_unit_pos(self, unit):
         display_pos = unit.display_pos
         display_pos = self.world_to_cord(display_pos)
+        x, y = display_pos
+        y -= self.TILE_Y_OFFSET
+        x += self.TILE_X_OFFSET // 2
         
-        x, y = display_pos[0] - self.camera_pos[0], display_pos[1] - self.camera_pos[1]
+        x, y = x - self.camera_pos[0], y - self.camera_pos[1]
         x *= self.zoom
         y *= self.zoom
 
-        visible = self.is_onscreen(x, y, IMAGE_SIZE)
+        visible = self.is_onscreen(x, y, unit.size)
 
         return x, y, visible
     
@@ -168,7 +171,29 @@ class Display:
         given_surface.blit(text_surface, (x, y))
 
     def draw_ui(self):
-        pass
+        if self.agent_tracking:
+            unit = self.agent_tracking
+            x, y, visible = self.get_unit_pos(unit)
+
+            start_x, start_y = x - 150 + (self.agent_tracking.size*self.zoom)/2, y - 180 + (self.agent_tracking.size*self.zoom)/4
+            self.draw_rect_advanced((210, 180, 140), 240, start_x, start_y, 300, 170, ((180, 140, 120), 10))
+            pygame.draw.polygon(self.screen, (180, 140, 120), [(start_x + 100, start_y + 170), (start_x +200, start_y + 170), (start_x + 150, start_y + 185)])
+            self.draw_text(self.screen, unit.name, start_x + 10, start_y + 10, (0, 0, 0))
+            pygame.draw.line(self.screen, (20, 20, 20), (start_x + 10, start_y + 30), (start_x + 290, start_y + 30))
+
+            for i, trait in enumerate(unit.traits):
+                self.draw_text(self.screen, trait, start_x + 10, start_y + 40 + 20 * i, (0, 0, 0))
+
+    def draw_rect_advanced(self, color, opacity, x, y, width, height, outline=None):
+        surface = pygame.Surface((width, height))
+        surface.set_alpha(opacity)
+        if not outline: surface.fill((color))
+        else:
+            outline_color, width = outline
+            surface.fill(outline_color)
+            surface.fill(color, surface.get_rect().inflate(-width, -width))
+
+        self.screen.blit(surface, (x, y))
 
     def handle_unit_animation(self, unit_dict):        
         for unit in unit_dict.units:
@@ -178,8 +203,8 @@ class Display:
                 unit.display_pos = list(unit.pos)
                 continue
                 
-            unit.display_pos[0] += dx * 0.05
-            unit.display_pos[1] += dy * 0.05
+            unit.display_pos[0] += dx * 0.1
+            unit.display_pos[1] += dy * 0.1
 
 
     def tick(self, board, units):
