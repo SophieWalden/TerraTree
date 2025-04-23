@@ -13,6 +13,7 @@ class Faction:
             pos = self.generate_new_cat_position(game_map)
 
         cat = Cat(sprites, pos)
+        cat.faction_id = self.id
         unit_dict.by_pos[pos] = cat
         unit_dict.by_faction[self.id].append(cat)
         unit_dict.units.append(cat)

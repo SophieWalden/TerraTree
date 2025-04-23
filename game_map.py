@@ -36,7 +36,7 @@ class GameMap:
             createdFaction = faction.Faction()
 
             camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
-            while any(dist(camp_position, pos) < 30 for pos in camp_positions):
+            while any(dist(camp_position, pos) < self.width // 6 for pos in camp_positions):
                 camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
 
             createdFaction.camp_pos = camp_position

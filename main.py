@@ -102,7 +102,20 @@ class Game:
             for command in commands:
                 if type(command) == MoveCommand:
                     unit, position = command.unit, command.pos
-                    if position in self.units.by_pos: continue
+                    if unit.dead: continue
+
+                    if position in self.units.by_pos: 
+                        enemy_unit = self.units.by_pos[position]
+                        if enemy_unit.faction_id == unit.faction_id: continue
+                        enemy_unit.health -= unit.damage
+                        if enemy_unit.health <= 0: 
+                            del self.units.by_pos[position]
+                            self.units.by_faction[enemy_unit.faction_id].remove(enemy_unit)
+                            enemy_unit.dead = True
+                            self.units.units.remove(enemy_unit)
+                        else:
+                            continue
+                        
 
                     self.units.move_unit(unit, position)
                     unit.direction = command.direction

@@ -148,10 +148,13 @@ class Cat:
         self.id = random.randint(0, 999999999999)
         self.name = self.generate_name()
         self.size = 30
+        self.faction_id = None
 
         self.direction = "left"
 
         self.agility_stat = random.random()
+        self.health, self.damage = random.randint(8, 20), random.randint(3, 8)
+        self.dead = False
 
         self.traits = [random.choice(personality), random.choice(social_traits), random.choice(quirks), random.choice(combat_style), random.choice(role_attitude), random.choice(bonding_style)]
         
