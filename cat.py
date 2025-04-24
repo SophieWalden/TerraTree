@@ -1,6 +1,8 @@
 import pygame, random
 from commands import MoveCommand
 import cell_terrain
+import math
+import heapq
 
 cat_colors = [
     (210, 161, 92),
@@ -134,6 +136,7 @@ bonding_style = [
     "Needs approval"
 ]
 
+
 class Cat:
     def __init__(self, sprites={}, pos=[0,0]):
         self.pos = pos
@@ -155,8 +158,12 @@ class Cat:
         self.agility_stat = random.random()
         self.health, self.damage = random.randint(8, 20), random.randint(3, 8)
         self.dead = False
+        self.hunger = 1000
+        self.prey = 0
 
         self.traits = [random.choice(personality), random.choice(social_traits), random.choice(quirks), random.choice(combat_style), random.choice(role_attitude), random.choice(bonding_style)]
+        self.goal = "hunt"
+        self.hunt_target = None
         
     def generate_color_palette(self):
         main_color = random.choice(cat_colors)
@@ -191,21 +198,45 @@ class Cat:
 
         del pixel_array 
         return surface
+
+
+    def getMove(self, game_map, factions, unit_dict):
+
+        def dist(p1, p2):
+            return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) **.5
+
+        if self.hunt_target and self.hunt_target.dead: self.hunt_target = None
+
+        if self.hunt_target == None:
+            for unit in unit_dict.by_faction["prey"]:
+                if dist(self.pos, unit.pos) < 40:
+                    self.hunt_target = unit
+                    break
+        
+        target_position = self.pos
+        if self.hunt_target:
+            target_position = self.hunt_target.pos
+        if self.prey > 0 or (self.hunger < 200 and factions[self.faction_id].prey > 0):
+            target_position = factions[self.faction_id].positions["kill_pile"]
     
 
-    def getMove(self, game_map):
-        possible_moves = []
+        best_move = None
+        distance = math.inf
         
         directions = ["left", "right", "down", "up"]
         for i, move in enumerate([(-1, 0), (1, 0), (0, 1), (0, -1)]):
             new_pos = (self.pos[0] + move[0], self.pos[1] + move[1])
             
             if not game_map.in_bounds(new_pos[0], new_pos[1]): continue
-            if game_map.tiles[new_pos[1]][new_pos[0]].has_stump: continue
+            if game_map.tiles[new_pos[1]][new_pos[0]].is_feature_impassable(): continue
 
-            possible_moves.append((new_pos, directions[i]))
+            computed_dist = dist(new_pos, target_position)
+            if computed_dist < distance:
+                best_move = (new_pos, directions[i])
+                distance = computed_dist
 
-        if random.random() < self.agility_stat or not possible_moves: return None
 
-        move, direction = random.choice(possible_moves)
+        if random.random() < self.agility_stat or not best_move: return None
+
+        move, direction = best_move
         return MoveCommand(self, move, direction)

@@ -30,20 +30,72 @@ class GameMap:
         def dist(p1, p2):
             return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** .5
 
-        factions = []
+        factions = {}
         camp_positions = set([])
         for _ in range(params.FACTION_COUNT):
             createdFaction = faction.Faction()
 
-            camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
-            while any(dist(camp_position, pos) < self.width // 6 for pos in camp_positions):
-                camp_position = (random.randint(0, self.width-1), random.randint(0, self.height - 1))
+            faction_size = 20
+            camp_position = (random.randint(faction_size/2, self.width-faction_size/2), random.randint(faction_size, self.height - faction_size/2))
+            while any(dist(camp_position, pos) < self.width // 3 for pos in camp_positions):
+                camp_position = (random.randint(faction_size/2, self.width-faction_size/2), random.randint(faction_size, self.height - faction_size/2))
+
+            dens = self.generate_dens(faction_size)
+            
+
+            kill_pile_unplaced = True
+            for j, row in enumerate(dens):
+                for i, tile in enumerate(row):
+                    position = (camp_position[0] + i - 10, camp_position[1] + j - 10)
+                    if tile == "wall": self.tiles[position[1]][position[0]].add_feature("den")
+                    elif tile == "floor": self.tiles[position[1]][position[0]].add_feature("floor")
+                    elif kill_pile_unplaced:
+                        kill_pile_unplaced = False
+                        self.tiles[position[1]][position[0]].add_feature("kill_pile")
+                        createdFaction.positions["kill_pile"] = [position[0], position[1]]
+
+            
 
             createdFaction.camp_pos = camp_position
             camp_positions.add(camp_position)
-            factions.append(createdFaction)
+            factions[createdFaction.id] = createdFaction
 
         return factions
+    
+    def is_spawnable(self, position):
+        return self.tiles[position[1]][position[0]].get_feature_type() == "" or not self.tiles[position[1]][position[0]].feature.impassable
+    
+    def generate_dens(self, size):
+        board = [[0] * size for _ in range(size)]
+
+        def den_not_free(pos, size):
+            for j in range(pos[1], pos[1] + size):
+                for i in range(pos[0], pos[0] + size):
+                    if i >= len(board[0]) or j >= len(board): return True
+                    if board[j][i] != 0: return True
+            
+            return False
+
+        dens = [["leader", 3], ["medicine", 4], ["warrior", 4], ["apprentice", 3], ["elder", 3], ["nursery", 5]]
+        for name, den_size in dens:
+            position = (random.randint(0, size - 1), random.randint(0, size - 1))
+            while den_not_free(position, den_size):
+                position = (random.randint(0, size - 1), random.randint(0, size - 1))
+
+            for j in range(position[1], position[1] + den_size):
+                for i in range(position[0], position[0] + den_size):
+                    quadrant = [position[0] // (size / 2), position[1] // (size / 2)]
+
+                    if ((i == position[0] and not quadrant[0]) 
+                       or (j == position[1] and not quadrant[1]) or 
+                       (i == position[0] + den_size - 1 and quadrant[0]) or 
+                       (j == position[1] + den_size - 1 and quadrant[1])):
+                        board[j][i] = "wall"
+                    else:
+                        board[j][i] = "floor"
+        
+        return board
+            
 
     def generate_board(self, width, height):
         board = [[0 for _ in range(self.width)] for _ in range(self.height)]

@@ -10,6 +10,9 @@ import random
 import units
 from commands import MoveCommand
 pygame.init()
+from simulator import Simulator
+from cat import Cat
+from faction import Faction
 
 
 class Game:
@@ -21,15 +24,18 @@ class Game:
         self.board = game_map.GameMap()
         self.reset = False
 
-        self.speed = 512
-        self.ticks = 0
 
         self.factions = self.board.gen_factions()
+        self.factions["prey"] = Faction("prey")
         cat_sprites = {key: self.display.images[f"cat_sprite_{key}"] for key in ["left", "right", "down", "up"]}
-        for faction in self.factions:
+        for fid, faction in self.factions.items():
+            if fid == "prey": continue
+            
             for _ in range(25):
                 faction.create_cat(cat_sprites, self.units, self.board)
                 
+
+        self.simulator = Simulator(self.units, self.board, self.display, self.factions)
         
 
     def event_handling(self):
@@ -50,9 +56,9 @@ class Game:
                 if event.key == pygame.K_r:
                     self.reset = True
                 elif event.key == pygame.K_LEFT:
-                    self.speed = max(self.speed // 2, 0.1)
+                    self.display.speed = max(self.display.speed // 2, 0.1)
                 elif event.key == pygame.K_RIGHT:
-                    self.speed = min(self.speed * 2, 1024)
+                    self.display.speed = min(self.display.speed * 2, 1024)
                 elif event.key == pygame.K_DOWN:
                     self.display.agent_tracking = random.choice(self.units.units)
 
@@ -68,6 +74,7 @@ class Game:
         if not self.display.agent_tracking_cooldown and time.perf_counter() - self.display.drag_time < 0.1:
             pos, pressed = pygame.mouse.get_pos(), pygame.mouse.get_pressed()
             for unit in self.units.units:
+                if type(unit) != Cat: continue
                 x, y, visible = self.display.get_unit_pos(unit)
 
                 if visible and x < pos[0] < x + unit.size * self.display.zoom and y < pos[1] < y + unit.size * self.display.zoom and pressed[0]:
@@ -87,47 +94,12 @@ class Game:
 
         pygame.display.flip()
 
-    def cat_logic(self, dt):
-        """Handles all of the calling, movement, and functions of the cats"""
-
-        self.ticks += dt
-
-        while self.ticks > self.speed:
-            commands = []
-            for cat in self.units.units:
-                commands.append(cat.getMove(self.board))
-
-            random.shuffle(commands)
-
-            for command in commands:
-                if type(command) == MoveCommand:
-                    unit, position = command.unit, command.pos
-                    if unit.dead: continue
-
-                    if position in self.units.by_pos: 
-                        enemy_unit = self.units.by_pos[position]
-                        if enemy_unit.faction_id == unit.faction_id: continue
-                        enemy_unit.health -= unit.damage
-                        if enemy_unit.health <= 0: 
-                            del self.units.by_pos[position]
-                            self.units.by_faction[enemy_unit.faction_id].remove(enemy_unit)
-                            enemy_unit.dead = True
-                            self.units.units.remove(enemy_unit)
-                        else:
-                            continue
-                        
-
-                    self.units.move_unit(unit, position)
-                    unit.direction = command.direction
-
-            self.ticks -= self.speed
-
     def main_loop(self):
         dt = 1/100000
         while not self.reset:
             self.event_handling()
             self.draw()
-            self.cat_logic(dt)
+            self.simulator.simulate_one_turn(dt)
             dt = self.fpsClock.tick(params.FPS)
       
 

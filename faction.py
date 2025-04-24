@@ -3,9 +3,12 @@ from cat import Cat
 
 
 class Faction:
-    def __init__(self):
-        self.id = random.randint(0, 100000000)
+    def __init__(self, id=None):
+
+        self.id = id if id else random.randint(0, 100000000)
         self.camp_pos = [0, 0]
+        self.positions = {"kill_pile": [0, 0]}
+        self.prey = 0
 
     def create_cat(self, sprites, unit_dict, game_map):
         pos = self.generate_new_cat_position(game_map)

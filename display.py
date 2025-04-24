@@ -3,6 +3,7 @@ import params
 import cell_terrain
 from collections import OrderedDict
 import time
+from cat import Cat
 
 class LRUCache:
     def __init__(self, max_size=250):
@@ -24,6 +25,8 @@ class LRUCache:
         return value
     
 TILE_IMAGES = {cell_terrain.Terrain.Grass: "grass_tile", cell_terrain.Terrain.Forest: "forest_tile"}
+FEATURE_IMAGES = {"stump": "tree_tile", "den": "den_wall_tile", "floor": "den_floor", "kill_pile": "kill_pile"}
+PREY_SPRITES = {"rat": "rat_sprite"}
 IMAGE_SIZE = 50
 
 class Display:
@@ -48,6 +51,7 @@ class Display:
         self.agent_tracking_cooldown = False
         self.drag_time = time.perf_counter()
         self.drag_cooldown = False
+        self.speed = 512
 
     def load_images(self):
         images = {}
@@ -124,23 +128,31 @@ class Display:
             x, y = self.world_to_cord((cell.pos[0], cell.pos[1]))
             self.blit(image, x, y, IMAGE_SIZE, TILE_IMAGES[cell.terrain])
 
-            if cell.has_stump:
-                image = self.images["tree_tile"]
-                x, y = self.world_to_cord((cell.pos[0], cell.pos[1]))
-                x += self.TILE_X_OFFSET // 3
-                y -= self.TILE_Y_OFFSET // 1.2
-                self.blit(image, x, y, 32, "tree_tile")
+
+        for cell in board.tiles_render_queue:
+            feature_type = cell.get_feature_type()
+            if feature_type:
+                image = self.images[FEATURE_IMAGES[feature_type]]
+                x, y = self.world_to_cord((cell.pos[0] - 1, cell.pos[1] - 1))
+                self.blit(image, x, y, 50, feature_type)
 
     def draw_units(self, units):
         for unit in units.units:
             position = unit.display_pos
-            image = unit.sprites[unit.direction]
+
+            if type(unit) == Cat:
+                sprite_name = f"{unit.id}_{unit.direction}"
+                image = unit.sprites[unit.direction]
+            else:
+                sprite_name = unit.type
+                image = self.images[PREY_SPRITES[unit.type]]
+
             size = unit.size
             
             x, y = self.world_to_cord(position)
             y -= self.TILE_Y_OFFSET
             x += self.TILE_X_OFFSET // 2
-            self.blit(image, x, y, size, f"{unit.id}_{unit.direction}")
+            self.blit(image, x, y, size, sprite_name)
 
 
     def draw_text(self, given_surface, msg, x, y, color):
