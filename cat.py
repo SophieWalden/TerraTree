@@ -3,6 +3,7 @@ from commands import MoveCommand
 import cell_terrain
 import math
 import heapq
+from collections import defaultdict
 
 cat_colors = [
     (210, 161, 92),
@@ -138,7 +139,7 @@ bonding_style = [
 
 
 class Cat:
-    def __init__(self, sprites={}, pos=[0,0]):
+    def __init__(self, sprites={}, pos=[0,0,0]):
         self.pos = pos
         self.display_pos = list(pos)
 
@@ -164,6 +165,8 @@ class Cat:
         self.traits = [random.choice(personality), random.choice(social_traits), random.choice(quirks), random.choice(combat_style), random.choice(role_attitude), random.choice(bonding_style)]
         self.goal = "hunt"
         self.hunt_target = None
+
+        self.path = {}
         
     def generate_color_palette(self):
         main_color = random.choice(cat_colors)
@@ -199,6 +202,68 @@ class Cat:
         del pixel_array 
         return surface
 
+    # def getMove(self, game_map, factions, unit_dict):
+    #     if "target" in self.path and self.pos == self.path["target"]:
+    #         self.path = None
+        
+    #     if self.path:
+    #         return MoveCommand(self, self.path[self.pos])
+
+    #     start, goal = self.pos, self.get_target(game_map, factions, unit_dict)
+    #     directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+
+    #     open_set = []
+    #     heapq.heappush(open_set, (self.dist(start, goal), 0, start))
+    #     came_from = {}
+    #     g_score = defaultdict(lambda: float("inf"))
+    #     g_score[start] = 0
+
+    #     while open_set:
+    #         _, cost, current = heapq.heappop(open_set)
+
+    #         if current == goal:
+    #             path = {"target": goal}
+    #             while current in came_from:
+    #                 path[came_from[current]] = current
+    #                 current = came_from[current]
+                
+    #             self.path = path
+    #             return None if len(self.path) <= 1 else MoveCommand(self, self.path[self.pos])
+        
+    #         for dx, dy in directions:
+    #             neighbor = (current[0] + dx, current[1] + dy)
+    #             if not game_map.in_bounds(neighbor[0], neighbor[1]): continue
+    #             if game_map.tiles[neighbor[1]][neighbor[0]].is_feature_impassable(): continue
+
+    #             tentative_g_score = g_score[current] + 1
+    #             if tentative_g_score < g_score[neighbor]:
+    #                 came_from[neighbor] = current
+    #                 g_score[neighbor] = tentative_g_score
+    #                 f_score = tentative_g_score + self.dist(neighbor, goal)
+    #                 heapq.heappush(open_set, (f_score, tentative_g_score, neighbor))
+
+    #     self.path = {}
+    
+    # def dist(self, p1, p2):
+    #         return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) **.5
+
+    # def get_target(self, game_map, factions, unit_dict):
+    #     if self.hunt_target and self.hunt_target.dead: self.hunt_target = None
+
+    #     if self.hunt_target == None:
+    #         for unit in unit_dict.by_faction["prey"]:
+    #             if self.dist(self.pos, unit.pos) < 40:
+    #                 self.hunt_target = unit
+    #                 break
+        
+    #     target_position = self.pos
+    #     if self.hunt_target:
+    #         target_position = self.hunt_target.pos
+    #     if self.prey > 0 or (self.hunger < 200 and factions[self.faction_id].prey > 0):
+    #         target_position = factions[self.faction_id].positions["kill_pile"]
+
+    #     return target_position
+
 
     def getMove(self, game_map, factions, unit_dict):
 
@@ -225,13 +290,13 @@ class Cat:
         
         directions = ["left", "right", "down", "up"]
         for i, move in enumerate([(-1, 0), (1, 0), (0, 1), (0, -1)]):
-            new_pos = (self.pos[0] + move[0], self.pos[1] + move[1])
+            new_pos = (self.pos[0] + move[0], self.pos[1] + move[1], self.pos[2])
             
             if not game_map.in_bounds(new_pos[0], new_pos[1]): continue
             if game_map.tiles[new_pos[1]][new_pos[0]].is_feature_impassable(): continue
 
             computed_dist = dist(new_pos, target_position)
-            if computed_dist < distance:
+            if computed_dist < distance and random.random() < 0.5:
                 best_move = (new_pos, directions[i])
                 distance = computed_dist
 
@@ -239,4 +304,4 @@ class Cat:
         if random.random() < self.agility_stat or not best_move: return None
 
         move, direction = best_move
-        return MoveCommand(self, move, direction)
+        return MoveCommand(self, move)

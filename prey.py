@@ -2,7 +2,7 @@ from commands import MoveCommand
 import random
 
 class Prey:
-    def __init__(self, type, pos):
+    def __init__(self, type, pos, z_level=0):
         self.type = type
         self.pos = pos
         self.display_pos = list(pos)
@@ -11,7 +11,8 @@ class Prey:
         self.id = random.randint(0, 9999999999)
         self.faction_id = "prey"
         self.health = 5
-        self.damage = 1
+        self.damage = 0
+        self.z_level = z_level
 
     def getMove(self, game_map):
         possible_moves = []
@@ -28,4 +29,4 @@ class Prey:
         if random.random() < 0.5 or not possible_moves: return None
 
         move, direction = random.choice(possible_moves)
-        return MoveCommand(self, move, direction)
+        return MoveCommand(self, move)

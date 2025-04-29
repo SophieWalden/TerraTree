@@ -21,21 +21,31 @@ class Game:
         self.fpsClock = pygame.time.Clock()
         
         self.units = units.unit_dict()
-        self.board = game_map.GameMap()
+        self.boards = {}
+
+        for i in range(params.FACTION_COUNT):
+            self.boards[i] = game_map.GameMap(20, 20, i)
+
         self.reset = False
 
-
-        self.factions = self.board.gen_factions()
-        self.factions["prey"] = Faction("prey")
         cat_sprites = {key: self.display.images[f"cat_sprite_{key}"] for key in ["left", "right", "down", "up"]}
-        for fid, faction in self.factions.items():
-            if fid == "prey": continue
-            
-            for _ in range(25):
-                faction.create_cat(cat_sprites, self.units, self.board)
-                
+        self.factions = {}
+        for key, board in self.boards.items():
+            faction = board.gen_faction("camp")
 
-        self.simulator = Simulator(self.units, self.board, self.display, self.factions)
+            self.factions[faction.id] = faction
+             
+
+            for _ in range(25):
+                faction.create_cat(cat_sprites, self.units, board)
+
+            self.display.board_viewing = board.z_level
+        
+
+        self.factions["prey"] = Faction("prey")
+        
+
+        self.simulator = Simulator(self.units, self.boards, self.display, self.factions)
         
 
     def event_handling(self):
@@ -60,7 +70,17 @@ class Game:
                 elif event.key == pygame.K_RIGHT:
                     self.display.speed = min(self.display.speed * 2, 1024)
                 elif event.key == pygame.K_DOWN:
-                    self.display.agent_tracking = random.choice(self.units.units)
+                    keys = list(self.boards.keys())
+                    board_index = keys.index(self.display.board_viewing)
+                    board_index -= 1
+                    board_index %= len(keys)
+                    self.display.board_viewing = keys[board_index]
+                elif event.key == pygame.K_UP:
+                    keys = list(self.boards.keys())
+                    board_index = keys.index(self.display.board_viewing)
+                    board_index += 1
+                    board_index %= len(keys)
+                    self.display.board_viewing = keys[board_index]
 
                 # elif event.key == pygame.K_u:
                 #     self.display.TILE_X_OFFSET -= 1
@@ -73,7 +93,7 @@ class Game:
 
         if not self.display.agent_tracking_cooldown and time.perf_counter() - self.display.drag_time < 0.1:
             pos, pressed = pygame.mouse.get_pos(), pygame.mouse.get_pressed()
-            for unit in self.units.units:
+            for unit in self.units.by_board[self.display.board_viewing]:
                 if type(unit) != Cat: continue
                 x, y, visible = self.display.get_unit_pos(unit)
 
@@ -83,9 +103,9 @@ class Game:
 
 
     def draw(self):
-        self.display.tick(self.board, self.units.units)
+        self.display.tick(self.boards, self.units.units)
         self.display.fill("#121212")
-        self.display.draw_map(self.board)
+        self.display.draw_map(self.boards)
         
         
         self.display.draw_units(self.units)
@@ -109,11 +129,4 @@ if __name__ == "__main__":
     display = display.Display()
 
     while True:
-        # profiler = cProfile.Profile()
-        # profiler.enable()
-
         Game(display).main_loop()
-
-        # profiler.disable()
-        # stats = pstats.Stats(profiler).sort_stats("tottime")
-        # stats.print_stats(30)

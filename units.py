@@ -7,6 +7,7 @@ class unit_dict:
     def __init__(self):
         self.units = []
         self.by_pos = {}
+        self.by_board = defaultdict(lambda: [])
         self.by_faction = defaultdict(lambda: [])
 
     def spawn_prey(self, game_map):

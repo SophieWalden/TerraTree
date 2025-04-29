@@ -4,6 +4,8 @@ from cat import Cat
 from prey import Prey
 from collections import defaultdict
 
+DIRECTION_KEY = {(-1, 0): "left", (1, 0): "right", (0, -1): "up", (0, 1): "down"}
+
 class Simulator:
     def __init__(self, units, board, display, factions):
         self.units, self.board, self.display, self.factions = units, board, display, factions
@@ -32,7 +34,7 @@ class Simulator:
                 if unit.dead: continue
 
                 key = sorted([unit.pos, position], key=lambda x: x[0]+x[1])
-                key = tuple([key[0][0], key[0][1], key[1][0], key[1][1]])
+                key = tuple([key[0][0], key[0][1], key[0][2], key[1][0], key[1][1], key[1][2]])
                 if key in faction_movements[unit.faction_id]: # Units want to pass by:
                     self.units.swap_positions(unit.pos, position)
                 else:
@@ -43,16 +45,26 @@ class Simulator:
 
                 faction_movements[unit.faction_id].add(key)
 
+                if hasattr(unit, "direction"):
+                    direction = (position[0] - unit.pos[0], position[1] - unit.pos[1])
+
+                    if direction in DIRECTION_KEY:
+                        unit.direction = DIRECTION_KEY[direction]
+                
                 self.units.move_unit(unit, position)
-                unit.direction = command.direction
+
+                
+                
 
                 if unit.faction_id != "prey" and self.factions[unit.faction_id].positions["kill_pile"] == list(position):
-                    self.factions[unit.faction_id].prey += unit.prey
-                    unit.prey = 0
-
                     if self.factions[unit.faction_id].prey > 0:
                         self.factions[unit.faction_id].prey -= 1
                         unit.hunger += 1000
+
+                    self.factions[unit.faction_id].prey += unit.prey
+                    unit.prey = 0
+
+                    
 
 
     def run_combat(self, unit, position):
@@ -78,10 +90,10 @@ class Simulator:
     def get_commands(self):
         commands = []
         for unit in self.units.units:
-            if type(unit) == Prey: commands.append(unit.getMove(self.board))
-            elif type(unit) == Cat: commands.append(unit.getMove(self.board, self.factions, self.units))
+            if type(unit) == Prey: commands.append(unit.getMove(self.board[unit.pos[2]]))
+            elif type(unit) == Cat: commands.append(unit.getMove(self.board[unit.pos[2]], self.factions, self.units))
 
-        random.shuffle(commands)
+        random.shuffle(  commands)
 
         return commands
 
@@ -89,23 +101,20 @@ class Simulator:
         for unit in self.units.units:
             if type(unit) != Cat: continue
             
-            unit.hunger -= 1
-            if unit.hunger <= 0:
-                unit.health -= 1
+            # unit.hunger -= 1
+            # if unit.hunger <= 0:
+            #     unit.health -= 1
 
-            if unit.prey > 0 and unit.hunger < 300:
-                unit.hunger += 1000
-                unit.prey -= 1
+            # if unit.prey > 0 and unit.hunger < 300:
+            #     unit.hunger += 1000
+            #     unit.prey -= 1
             
             
             if unit.health <= 0:
                 self.kill(unit)
 
     def handle_spawning(self):
-        self.prey_cooldown -= 1
-        if self.prey_cooldown == 0:
-            self.prey_cooldown = 1
-            self.units.spawn_prey(self.board)
+        pass
 
     def kill(self, unit):
         unit.dead = True

@@ -19,6 +19,8 @@ class Cell:
     def is_feature_impassable(self):
         return self.feature and self.feature.impassable
 
+    
+
 class Feature:
     def __init__(self, type, impassable=False):
         self.type = type

@@ -1,4 +1,4 @@
 
 class MoveCommand:
-    def __init__(self, unit, pos, direction):
-        self.unit, self.pos, self.direction = unit, pos, direction
+    def __init__(self, unit, pos):
+        self.unit, self.pos = unit, pos

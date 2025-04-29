@@ -7,10 +7,11 @@ import faction
 TERRAIN_TRANSLATION = {0: cell_terrain.Terrain.Grass, 1: cell_terrain.Terrain.Forest}
 
 class GameMap:
-    def __init__(self):
-        self.width, self.height = params.BOARD_WIDTH, params.BOARD_HEIGHT
+    def __init__(self, width, height, z):
+        self.width, self.height = width, height
         self.tiles = self.generate_board(self.width, self.height)
         self.tiles_render_queue = self.generate_render_queue(self.tiles)
+        self.z_level = z
     
     def generate_render_queue(self, tiles):
         flat_tiles = []
@@ -25,6 +26,33 @@ class GameMap:
     def in_bounds(self, x, y):
         return x >= 0 and x < len(self.tiles[0]) and y >= 0 and y < len(self.tiles) 
     
+    def gen_faction(self, type):
+        def dist(p1, p2):
+            return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** .5
+        
+        def get_free_spot(den):
+            position = (random.randint(0, self.width - 1), random.randint(0, self.height - 1))
+            while den[position[1]][position[0]] != 0:
+                position = (random.randint(0, self.width - 1), random.randint(0, self.height - 1))
+
+            return position
+
+
+        createdFaction = faction.Faction(z_level=self.z_level)
+        if type == "camp":
+            
+
+            dens = self.generate_dens(self.width)
+            for j, row in enumerate(dens):
+                for i, tile in enumerate(row):
+                    if tile == "wall": self.tiles[j][i].add_feature("den")
+                    elif tile == "floor": self.tiles[j][i].add_feature("floor")
+
+            createdFaction.positions["kill_pile"] = get_free_spot(dens) 
+            self.tiles[createdFaction.positions["kill_pile"][1]][createdFaction.positions["kill_pile"][0]].add_feature("kill_pile")
+
+        return createdFaction
+
     def gen_factions(self):
 
         def dist(p1, p2):

@@ -52,6 +52,7 @@ class Display:
         self.drag_time = time.perf_counter()
         self.drag_cooldown = False
         self.speed = 512
+        self.board_viewing = None
 
     def load_images(self):
         images = {}
@@ -123,13 +124,13 @@ class Display:
             
 
     def draw_map(self, board):
-        for cell in board.tiles_render_queue:
+        for cell in board[self.board_viewing].tiles_render_queue:
             image = self.images[TILE_IMAGES[cell.terrain]]
             x, y = self.world_to_cord((cell.pos[0], cell.pos[1]))
             self.blit(image, x, y, IMAGE_SIZE, TILE_IMAGES[cell.terrain])
 
 
-        for cell in board.tiles_render_queue:
+        for cell in board[self.board_viewing].tiles_render_queue:
             feature_type = cell.get_feature_type()
             if feature_type:
                 image = self.images[FEATURE_IMAGES[feature_type]]
@@ -137,7 +138,7 @@ class Display:
                 self.blit(image, x, y, 50, feature_type)
 
     def draw_units(self, units):
-        for unit in units.units:
+        for unit in units.by_board[self.board_viewing]:
             position = unit.display_pos
 
             if type(unit) == Cat:
